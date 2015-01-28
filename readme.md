@@ -6,11 +6,11 @@ The default hotkey is `CTRL-SHIFT-Q`.
 
 ## Download
 
-* Download [Distribute/Window Fill.zip]().
+* Download [Distribute/Window Fill.zip](https://github.com/QasimK/Window-Fill/raw/master/Distribute/Window%20Fill.zip/).
 * Extract it wherever you want and use `Window Fill.exe` to run the program.
 * Recommended: add `Window Fill.exe` to Windows start-up by... (TODO).
 
-You can also [download]() an (older) version that has a notification area GUI instead of a console window.
+You can also [download](https://github.com/QasimK/Window-Fill/raw/master/Distribute/Window%20Fill-old-gui.zip/) an (older) version that has a notification area GUI instead of a console window.
 
 
 ## Build
