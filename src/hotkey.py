@@ -18,18 +18,14 @@ Message structure & Hotkey Message
 
 import ctypes  # @UnusedImport
 import ctypes.wintypes
+import string
 
 RegisterHotKey = ctypes.windll.user32.RegisterHotKey
 UnregisterHotKey = ctypes.windll.user32.UnregisterHotKey
 GetMessage = ctypes.windll.user32.GetMessageW
 
-#Mouse events are not supported
-KEY_MAP = {
-    #"MOUSE_LEFT": 0x01,
-    #"MOUSE_RIGHT": 0x02,
-    "A": 0x41,
-    "Q": 0x51
-}
+#Mouse events are not supported with RegisterHotKey
+KEY_MAP = { letter: 0x41+i for i, letter in enumerate(string.ascii_uppercase) }
 
 _registered_hotkeys = []
 
