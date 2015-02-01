@@ -17,7 +17,6 @@ def move(x, y):
 if __name__ == '__main__':
     config = settings.Settings()
     user_hotkey = config.get_hotkey()
-    print(user_hotkey)
     
     logging.basicConfig(filename="logging.log", filemode='w',
                         level=logging.DEBUG)
