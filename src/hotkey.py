@@ -13,12 +13,12 @@ Message structure & Hotkey Message
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms646279%28v=vs.85%29.aspx
 """
 
-#TODO: Turn prints into logging
 #TODO: Proper exceptions
 
 import ctypes  # @UnusedImport
 import ctypes.wintypes
 import string
+import logging
 
 RegisterHotKey = ctypes.windll.user32.RegisterHotKey
 UnregisterHotKey = ctypes.windll.user32.UnregisterHotKey
@@ -65,7 +65,10 @@ def register_hotkey(keys, func):
     
     success = RegisterHotKey(None, hid, modifiers, KEY_MAP[key])
     if success:
+        logging.debug('Hotkey registered: {}'.format(new_reg))
         _registered_hotkeys.append(new_reg)
+    else:
+        logging.warning('Hotkey failed to register: {}'.format(new_reg))
     return success
     
 
@@ -81,7 +84,11 @@ def unregister_hotkey(hid=None, keys=None, func=None):
         if stored_keys == tuple(sorted(keys)):
             success = UnregisterHotKey(None, hid)
             if success:
+                logging.debug('Hotkey unregistered: {}'.format((hid, stored_keys, func)))
                 remove_positions.append(pos)
+            else:
+                logging.error('Failed to unregister hotkey: {}'.format(
+                              (hid, stored_keys, func)))
     
     if remove_positions:
         for pos in remove_positions:
@@ -89,17 +96,18 @@ def unregister_hotkey(hid=None, keys=None, func=None):
         return True
     else:
         return False
+    
 
-def process_messages_wait_once():
-    """Wait for the next message and process it"""
+def process_next_message():
+    """Return if next message was processed successfully (wait for message)"""
     msg = ctypes.wintypes.MSG()
-    success = GetMessage(ctypes.pointer(msg), None, 0, 0)
+    success = GetMessage(ctypes.pointer(msg), None, 0, 0) # Waiting here
     
     if success <= 0:
         if success == 0:
-            print("Exit")
+            logging.info("Windows message to exit.")
         if success == -1:
-            print("Fatal error")
+            logging.error("Windows fatal message.")
         return success
     
     for hid, keys, func in _registered_hotkeys:  # @UnusedVariable
@@ -107,15 +115,20 @@ def process_messages_wait_once():
             func(msg.pt.x, msg.pt.y)
             return True
     else:
-        print("No hotkey registered to this")
+        logging.warn('No hotkey registered for windows message, hid: {}'.format(
+                     msg.wParam))
         return False
 
 
 if __name__ == '__main__':
-    def do_rand(x, y):
+    '''Testing:'''
+    def do_whoop(x, y):
         print("Whoop", x, y)
     
-    register_hotkey(("MOD_CONTROL", "MOD_SHIFT", "Q"), do_rand)
-    process_messages_wait_once()
-    print("unreg", unregister_hotkey(keys=("MOD_CONTROL", "MOD_SHIFT", "Q")))
-    process_messages_wait_once()
+    hotkey = ("MOD_CONTROL", "MOD_SHIFT", "Q")
+    print("Register hotkey. Press ctrl-shift-q.")
+    register_hotkey(hotkey, do_whoop)
+    process_next_message()
+    print("Unregister hotkey:", unregister_hotkey(keys=hotkey))
+    print("Press hotkey again.")
+    process_next_message()
