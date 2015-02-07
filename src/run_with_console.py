@@ -10,7 +10,7 @@ def move(x, y):
 
 if __name__ == '__main__':
     config = settings.Settings()
-    config.setup_default_logging()
+    config.setup_logging()
     user_hotkey = config.get_hotkey()
     
     if hotkey.register_hotkey(user_hotkey, move):

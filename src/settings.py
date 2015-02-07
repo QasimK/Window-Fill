@@ -60,7 +60,7 @@ class Settings:
         
         return hotkey
     
-    def setup_default_logging(self):
+    def setup_logging(self, to_file=True, to_console=False):
         '''Setup default logging behaviour
         
         Log debug messages if in debug mode, otherwise just errors'''
@@ -70,5 +70,8 @@ class Settings:
         else:
             level = logging.ERROR
         
-        filename = os.path.join(self.appdata_location, DEFAULT_LOG_NAME)
-        logging.basicConfig(filename=filename, filemode='w', level=level)
+        if to_file:
+            filename = os.path.join(self.appdata_location, DEFAULT_LOG_NAME)
+            logging.basicConfig(filename=filename, filemode='w', level=level)
+        elif to_console:
+            logging.basicConfig(level=level)
