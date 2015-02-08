@@ -61,7 +61,7 @@ class Settings:
         return hotkey
     
     def setup_logging(self, to_file=True, to_console=False):
-        '''Setup default logging behaviour
+        '''Setup logging behaviour to a file or to the console
         
         Log debug messages if in debug mode, otherwise just errors'''
         
