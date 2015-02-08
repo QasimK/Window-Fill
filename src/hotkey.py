@@ -6,7 +6,7 @@ Register hotkey
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309%28v=vs.85%29.aspx
 Unregister hotkey
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms646327%28v=vs.85%29.aspx
-GetMessage
+_GetMessage
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms644936%28v=vs.85%29.aspx
 Message structure & Hotkey Message
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms644958%28v=vs.85%29.aspx
@@ -20,22 +20,36 @@ import ctypes.wintypes
 import string
 import logging
 
-RegisterHotKey = ctypes.windll.user32.RegisterHotKey
-UnregisterHotKey = ctypes.windll.user32.UnregisterHotKey
-GetMessage = ctypes.windll.user32.GetMessageW
+_RegisterHotKey = ctypes.windll.user32.RegisterHotKey
+_UnregisterHotKey = ctypes.windll.user32.UnregisterHotKey
+_GetMessage = ctypes.windll.user32.GetMessageW
 
-#Mouse events are not supported with RegisterHotKey
+#Mouse events are not supported with _RegisterHotKey
 KEY_MAP = { letter: 0x41+i for i, letter in enumerate(string.ascii_uppercase) }
 
-_registered_hotkeys = []
+_registered_hotkeys = [] #[(HID, Hotkey tuple, function), ...]
+
+
+class HotkeyException(Exception):
+    pass
+
+
+class FailedToRegisterHotkey(HotkeyException):
+    pass
+
+
+def get_total_registrations():
+    """Return number of registered hotkeys"""
+    return len(_registered_hotkeys)
+
 
 def register_hotkey(keys, func):
-    """Return hid if func has been registered, otherwise return 0.
+    """Return the HID (identifier) of the newly registered hotkey
     
     By registering func(x, y) with keys, the function will be called with the
     mouse cursor position (x, y) at the time the keys are pressed.
-        
-    eg. create_hotkey(("MOD_CONTROL", "MOD_SHIFT", "Q"), func)
+    
+    eg. register_hotkey(("MOD_CONTROL", "MOD_SHIFT", "Q"), lambda x, y: print())
     The keys must be a single key in KEY_MAP and optional modifiers.
     The possible modifiers are MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, and
     MOD_NOREPEAT."""
@@ -51,57 +65,85 @@ def register_hotkey(keys, func):
     hid = len(_registered_hotkeys)
     new_reg = (hid, tuple(sorted(keys)), func)
     
-    keys = [key.upper() for key in keys]
+    processed_keys = [key.upper() for key in keys]
     modifiers = 0
     for modifier_name, win_value in MODIFIER_VALUES.items():
-        if modifier_name in keys:
-            keys.remove(modifier_name)
+        if modifier_name in processed_keys:
+            processed_keys.remove(modifier_name)
             modifiers |= win_value
     
     #Must have exactly one keys left
-    if len(keys) != 1:
-        return False
-    key = keys[0].upper()
+    if len(processed_keys) != 1:
+        raise FailedToRegisterHotkey("Invalid hotkey {}".format(keys))
+    key = processed_keys[0].upper()
     
-    success = RegisterHotKey(None, hid, modifiers, KEY_MAP[key])
-    if success:
+    if _RegisterHotKey(None, hid, modifiers, KEY_MAP[key]):
         logging.debug('Hotkey registered: {}'.format(new_reg))
         _registered_hotkeys.append(new_reg)
     else:
         logging.warning('Hotkey failed to register: {}'.format(new_reg))
-    return success
+        raise FailedToRegisterHotkey()
+    return hid
     
 
 def unregister_hotkey(hid=None, keys=None, func=None):
-    """Return if hotkeys identified by optional hid, keys, or func are removed"""
+    """Return the number of hotkeys removed
+    
+    Hotkeys can be identified by a hid, a tuple of keys or a function."""
     
     if hid is None and keys is None and func is None:
-        return False
+        return 0
     
-    #TODO: unregister by hid or func
-    remove_positions = []
-    for pos, (hid, stored_keys, func) in enumerate(_registered_hotkeys):
-        if stored_keys == tuple(sorted(keys)):
-            success = UnregisterHotKey(None, hid)
-            if success:
-                logging.debug('Hotkey unregistered: {}'.format((hid, stored_keys, func)))
-                remove_positions.append(pos)
+    if keys is not None:
+        keys = tuple(sorted(keys))
+    
+    def registered(hotkey):
+        """Return if hotkey was NOT removed"""
+        stored_hid, stored_keys, stored_func = hotkey
+        if((hid is not None and stored_hid == hid) or
+           (keys is not None and stored_keys == keys) or
+           (func is not None and stored_func == func)):
+            if _UnregisterHotKey(None, stored_hid):
+                logging.debug('Hotkey unregistered: {}'.format(*hotkey))
+                return False
             else:
-                logging.error('Failed to unregister hotkey: {}'.format(
-                              (hid, stored_keys, func)))
-    
-    if remove_positions:
-        for pos in remove_positions:
-            del _registered_hotkeys[pos]
+                logging.error('Failed to registered hotkey: {}'.format(*hotkey))
+        
         return True
-    else:
-        return False
+        
     
+    global _registered_hotkeys
+    original_length = len(_registered_hotkeys)
+    _registered_hotkeys = [hk for hk in _registered_hotkeys if registered(hk)]
+    
+    return original_length - len(_registered_hotkeys)
+    
+
+def unregister_all_hotkeys():
+    """Return if all hotkeys were successfully unregistered"""
+    
+    def registered(hotkey):
+        """Return if hotkey was NOT removed"""
+        stored_hid, stored_keys, stored_func = hotkey  # @UnusedVariable
+        if _UnregisterHotKey(None, stored_hid):
+            logging.debug('Hotkey unregistered: {}'.format(*hotkey))
+            return False
+        else:
+            return True
+    
+    global _registered_hotkeys
+    _registered_hotkeys = [hk for hk in _registered_hotkeys if registered(hk)]
+    
+    if len(_registered_hotkeys):
+        return False
+    else:
+        return True
+
 
 def process_next_message():
     """Return if next message was processed successfully (wait for message)"""
     msg = ctypes.wintypes.MSG()
-    success = GetMessage(ctypes.pointer(msg), None, 0, 0) # Waiting here
+    success = _GetMessage(ctypes.pointer(msg), None, 0, 0) # Waiting here
     
     if success <= 0:
         if success == 0:
@@ -118,17 +160,3 @@ def process_next_message():
         logging.warn('No hotkey registered for windows message, hid: {}'.format(
                      msg.wParam))
         return False
-
-
-if __name__ == '__main__':
-    '''Testing:'''
-    def do_whoop(x, y):
-        print("Whoop", x, y)
-    
-    hotkey = ("MOD_CONTROL", "MOD_SHIFT", "Q")
-    print("Register hotkey. Press ctrl-shift-q.")
-    register_hotkey(hotkey, do_whoop)
-    process_next_message()
-    print("Unregister hotkey:", unregister_hotkey(keys=hotkey))
-    print("Press hotkey again.")
-    process_next_message()

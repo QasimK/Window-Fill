@@ -17,54 +17,64 @@ class TestWindowInfo(unittest.TestCase):
         
         #HID unregister
         hid = hotkey.register_hotkey(key_combo, func)
+        self.assertIsNotNone(hid)
         self.assertEqual(hotkey.get_total_registrations(), 1)
-        self.assertFalse(hotkey.unregister_hotkey(hid=hid + 1))
-        self.assertTrue(hotkey.unregister_hotkey(hid=hid))
+        self.assertEqual(hotkey.unregister_hotkey(hid=hid + 1), 0)
+        self.assertEqual(hotkey.unregister_hotkey(hid=hid), 1)
         self.assertEqual(hotkey.get_total_registrations(), 0)
         
         #hotkey unregister
         hid = hotkey.register_hotkey(key_combo, func)
         self.assertIsNotNone(hid)
         self.assertEqual(hotkey.get_total_registrations(), 1)
-        self.assertFalse(hotkey.unregister_hotkey(keys=["invalid", "combo"]))
-        self.assertTrue(hotkey.unregister_hotkey(keys=key_combo))
+        self.assertEqual(hotkey.unregister_hotkey(keys=["invalid", "combo"]), 0)
+        self.assertEqual(hotkey.unregister_hotkey(keys=key_combo), 1)
         self.assertEqual(hotkey.get_total_registrations(), 0)
         
         #func unregister
         hid = hotkey.register_hotkey(key_combo, func)
         self.assertIsNotNone(hid)
         self.assertEqual(hotkey.get_total_registrations(), 1)
-        self.assertFalse(hotkey.unregister_hotkey(func=lambda: print("CSX")))
-        self.assertTrue(hotkey.unregister_hotkey(func=func))
+        self.assertEqual(hotkey.unregister_hotkey(func=lambda: print("CSX")), 0)
+        self.assertEqual(hotkey.unregister_hotkey(func=func), 1)
         self.assertEqual(hotkey.get_total_registrations(), 0)
     
     def test_unregister_multiple(self):
-        """Test unregistering multiple hotkeys by the same hotkey/function"""
+        """Test unregistering multiple hotkeys by the same function"""
         func1 = lambda x: x+1
         func2 = lambda x: x+1
         
         #Unregister by function
         self.assertEqual(hotkey.get_total_registrations(), 0)
-        self.assertTrue(hotkey.register_hotkey(["Q"], func1))
-        self.assertTrue(hotkey.register_hotkey(["W"], func1))
-        self.assertTrue(hotkey.register_hotkey(["E"], func2))
+        hotkey.register_hotkey(["Q"], func1)
+        hotkey.register_hotkey(["W"], func1)
+        hotkey.register_hotkey(["E"], func2)
         self.assertEqual(hotkey.get_total_registrations(), 3)
-        self.assertTrue(hotkey.unregister_hotkey(func=func1))
+        self.assertEqual(hotkey.unregister_hotkey(func=func1), 2)
+        self.assertEqual(hotkey.get_total_registrations(), 1)
+        self.assertEqual(hotkey.unregister_hotkey(keys=["E"]), 1)
+        self.assertEqual(hotkey.get_total_registrations(), 0)
+        
+    def test_failed_registeration(self):
+        #Try to register to same key combo
+        self.assertEqual(hotkey.get_total_registrations(), 0)
+        hotkey.register_hotkey(["Q"], lambda: 0)
         self.assertEqual(hotkey.get_total_registrations(), 1)
         
-        #Unregister by keys
-        self.assertTrue(hotkey.register_hotkey(["E"], func1))
-        self.assertEqual(hotkey.get_total_registrations(), 2)
-        self.assertTrue(hotkey.unregister_hotkey(keys=["E"]))
+        with self.assertRaises(hotkey.FailedToRegisterHotkey):
+            hotkey.register_hotkey(["Q"], lambda: 1)
+        
+        self.assertEqual(hotkey.get_total_registrations(), 1)
+        self.assertEqual(hotkey.unregister_hotkey(keys=["Q"]), 1)
         self.assertEqual(hotkey.get_total_registrations(), 0)
     
     def test_unregister_all(self):
         self.assertEqual(hotkey.get_total_registrations(), 0)
-        self.assertTrue(hotkey.register_hotkey(["Q"], lambda: print()))
-        self.assertTrue(hotkey.register_hotkey(["W"], lambda x: x+1))
-        self.assertTrue(hotkey.register_hotkey(["E"], lambda x: x+1))
+        hotkey.register_hotkey(["Q"], lambda x: x)
+        hotkey.register_hotkey(["W"], lambda x: x+1)
+        hotkey.register_hotkey(["E"], lambda x: x+1)
         self.assertEqual(hotkey.get_total_registrations(), 3)
-        hotkey.unregister_all_hotkeys()
+        self.assertTrue(hotkey.unregister_all_hotkeys())
         self.assertEqual(hotkey.get_total_registrations(), 0)
     
     """
