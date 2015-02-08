@@ -6,14 +6,12 @@ Register hotkey
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309%28v=vs.85%29.aspx
 Unregister hotkey
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms646327%28v=vs.85%29.aspx
-_GetMessage
+GetMessage
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms644936%28v=vs.85%29.aspx
 Message structure & Hotkey Message
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms644958%28v=vs.85%29.aspx
     https://msdn.microsoft.com/en-us/library/windows/desktop/ms646279%28v=vs.85%29.aspx
 """
-
-#TODO: Proper exceptions
 
 import ctypes  # @UnusedImport
 import ctypes.wintypes
@@ -32,7 +30,6 @@ _registered_hotkeys = [] #[(HID, Hotkey tuple, function), ...]
 
 class HotkeyException(Exception):
     pass
-
 
 class FailedToRegisterHotkey(HotkeyException):
     pass
@@ -80,10 +77,11 @@ def register_hotkey(keys, func):
     if _RegisterHotKey(None, hid, modifiers, KEY_MAP[key]):
         logging.debug('Hotkey registered: {}'.format(new_reg))
         _registered_hotkeys.append(new_reg)
+        return hid
     else:
-        logging.warning('Hotkey failed to register: {}'.format(new_reg))
-        raise FailedToRegisterHotkey()
-    return hid
+        msg = 'Hotkey failed to register: {}'.format(new_reg)
+        logging.warning(msg)
+        raise FailedToRegisterHotkey(msg)
     
 
 def unregister_hotkey(hid=None, keys=None, func=None):
@@ -140,8 +138,9 @@ def unregister_all_hotkeys():
         return True
 
 
+#TODO: Exceptions for process_next_message function
 def process_next_message():
-    """Return if next message was processed successfully (wait for message)"""
+    """Return if next message was processed successfully (waits for message)"""
     msg = ctypes.wintypes.MSG()
     success = _GetMessage(ctypes.pointer(msg), None, 0, 0) # Waiting here
     
