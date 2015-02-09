@@ -18,6 +18,8 @@ import ctypes.wintypes
 import string
 import logging
 
+logging = logging.getLogger(__name__)
+
 _RegisterHotKey = ctypes.windll.user32.RegisterHotKey
 _UnregisterHotKey = ctypes.windll.user32.UnregisterHotKey
 _GetMessage = ctypes.windll.user32.GetMessageW

@@ -7,6 +7,8 @@ import ctypes.wintypes
 import math
 import logging
 
+logging = logging.getLogger(__name__)
+
 EnumWindows = ctypes.windll.user32.EnumWindows
 EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool,
                                      ctypes.POINTER(ctypes.c_int),
@@ -21,7 +23,6 @@ IsZoomed = ctypes.windll.user32.IsZoomed #Is Maximised?
 GetForegroundWindow = ctypes.windll.user32.GetForegroundWindow
 MoveWindow = ctypes.windll.user32.MoveWindow
 GetCursorPos = ctypes.windll.user32.GetCursorPos
-
 
 
 def get_list_of_windows():

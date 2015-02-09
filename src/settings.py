@@ -5,6 +5,8 @@ import logging
 import configparser
 import string
 
+logging = logging.getLogger(__name__)
+
 DEFAULT_APPDATA_LOCATION = os.path.join(os.getenv('APPDATA'), 'Window Fill')
 DEFAULT_CONFIG_NAME = 'config.ini'
 DEFAULT_LOG_NAME = 'log.txt'
@@ -20,6 +22,7 @@ default_settings = {
         'enable logging': 'yes'
     }
 }
+
 
 class Settings:
     def __init__(self, appdata_location=DEFAULT_APPDATA_LOCATION):
