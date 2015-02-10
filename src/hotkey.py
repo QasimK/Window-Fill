@@ -61,9 +61,6 @@ def register_hotkey(keys, func):
         "MOD_NOREPEAT": 0x4000
     }
     
-    hid = len(_registered_hotkeys)
-    new_reg = (hid, tuple(sorted(keys)), func)
-    
     processed_keys = [key.upper() for key in keys]
     modifiers = 0
     for modifier_name, win_value in MODIFIER_VALUES.items():
@@ -75,6 +72,9 @@ def register_hotkey(keys, func):
     if len(processed_keys) != 1:
         raise FailedToRegisterHotkey("Invalid hotkey {}".format(keys))
     key = processed_keys[0].upper()
+    
+    hid = len(_registered_hotkeys)
+    new_reg = (hid, tuple(sorted(keys)), func)
     
     if _RegisterHotKey(None, hid, modifiers, KEY_MAP[key]):
         logging.debug('Hotkey registered: {}'.format(new_reg))
